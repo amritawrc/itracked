@@ -13,9 +13,11 @@ class Invoice extends MY_AdminController
     function index(){
         $cond3 = "AND status < '5'";
         $details = $this->admin->fetch('org', $cond3);
-// 	t($details , 1);
+
+	// t($details , 1);
         foreach ($details as $key => $value) {
             $id = $value['add_seq_no'];
+            $org_id = $value['org_seq_no'];
             $cond = "AND id=$id and status < '5'";
             $org_details = $this->admin->fetch('address', $cond);
 	
@@ -29,9 +31,15 @@ class Invoice extends MY_AdminController
             $county_details = $this->admin->fetch('county', $cond2);
             $details[$key]['city'] = $city_details[0]['city_name'];
             $details[$key]['county'] = $county_details[0]['county_name'];
+
+            $cond_event = "AND status < '5' AND org_id = '" . $org_id ."' ";
+            $event_details = $this->admin->fetch('event', $cond_event);
+            $details[$key]['event'] = $event_details[0];
+
+
         }
         $this->data['det'] = $details;
-        //t($this->data['det'],1);
+        // t($this->data['det'],1);
         $this->get_include();
         $this->load->view($this->viewDir . "invoice/listing", $this->data);
     }
@@ -58,20 +66,19 @@ class Invoice extends MY_AdminController
         
     
     function auto_payment($org_id = ''){
-        
+
         $org_id = base64_decode($org_id);
 
         $sql_event = "SELECT eve.*, org.org_name, org.house_name_number, org.street_name, org.username, org.currency, org.postal " 
-                        ."FROM tbl_event as eve "
-                        ."LEFT JOIN tbl_org as org ON org.org_seq_no = eve.org_id "
-                        ."WHERE eve.org_id = '" . $org_id . "' AND eve.start_date < '" . date('Y-m-d', strtotime('next monday')) . "' AND eve.event_billing = '0' ";
+            ."FROM tbl_event as eve "
+            ."LEFT JOIN tbl_org as org ON org.org_seq_no = eve.org_id "
+            ."WHERE eve.org_id = '" . $org_id . "' AND eve.start_date < '" . date('Y-m-d', strtotime('next monday')) . "' AND eve.event_billing = '0' ";
                        
         $query_event = $this->db->query($sql_event);
         $all_event_in_an_org = $query_event->result_array();
 
             // t($all_event_in_an_org); exit;
     foreach($all_event_in_an_org as $key => $value){
-        
 
             $start_date = $value['start_date'];
             $end_date = $value['end_date'];
@@ -84,7 +91,24 @@ class Invoice extends MY_AdminController
             $next_monday_1 = date('Y-m-d', strtotime('next monday'));
             $next_monday = strtotime($next_monday_1);
             $org_currency = $value['currency'];
-        
+    /*************Inserting data into tbl_exchange_rate for testing purpose only. Please comment this section and the 
+                function currencyConverter out, once the whole auto-billing system is up and running. - BEGIN **********/ 
+            $currency_input = 1;
+            $currency_from = "GBP";
+            $currency_to_us_dollar = $this->currencyConverter($currency_from,"USD",$currency_input);
+            $currency_to_euro_eu = $this->currencyConverter($currency_from,"EUR",$currency_input);
+
+            $data_exchange = array(
+                'us_dollar' => $currency_to_us_dollar,
+                'euro_eu' => $currency_to_euro_eu,
+                'created_date' => strtotime(date('Y-m-d'))
+                );
+            $insert_exchange = $this->admin->add('exchange_rate', $data_exchange);
+            // echo $this->db->last_query(); exit;
+
+/*************Inserting data into tbl_exchange_rate for testing purpose only. Please comment this section and the 
+                function currencyConverter out, once the whole auto-billing system is up and running. - END **********/ 
+
          $sql_student = "SELECT usr.fname, usr.lname, usr.type, tevs.stu_id, eve.ev_seq_no, DATEDIFF('$end_date', '$start_date') as duration "
                 ."FROM tbl_user as usr "
                 ."LEFT JOIN tbl_event_stu_map as tevs ON usr.id = tevs.stu_id "
@@ -97,17 +121,17 @@ class Invoice extends MY_AdminController
         
         $all_price_list = $this->admin->fetch('pricing');
 
-    $all_price_list = $this->admin->fetch('pricing');
-    $single_user_array = array($all_price_list[0]);
-     $one_day_user = $single_user_array[0]['one_day_user'];
+        $all_price_list = $this->admin->fetch('pricing');
+        $single_user_array = array($all_price_list[0]);
+        $one_day_user = $single_user_array[0]['one_day_user'];
     
-    $currency_sql = "SELECT * FROM `tbl_exchange_rate` WHERE `created_date` BETWEEN '" . $date_1 ."' AND  '" . $next_monday. "' ";
-    $query_currency = $this->db->query($currency_sql);
-    $res_currency = $query_currency->result_array();
+        $currency_sql = "SELECT * FROM `tbl_exchange_rate` WHERE `created_date` BETWEEN '" . $date_1 ."' AND  '" . $next_monday. "' ";
+        $query_currency = $this->db->query($currency_sql);
+        $res_currency = $query_currency->result_array();
     // t($res_currency); exit;
 
-   $usd_exchange_rate = $res_currency[0]['us_dollar'];
-   $euro_exchange_rate = $res_currency[0]['euro_eu'];
+       $usd_exchange_rate = $res_currency[0]['us_dollar'];
+       $euro_exchange_rate = $res_currency[0]['euro_eu'];
 // exit;
         
         
@@ -162,47 +186,50 @@ class Invoice extends MY_AdminController
         $this->get_include();
         $this->load->view($this->viewDir . "invoice/invoice");
         } else{
-     $this->data['all_event_in_an_org'] = $all_event_in_an_org;
-     $this->data['no_of_student_in_an_event'] = $no_of_student_in_an_event;
-     $this->data['all_student_in_an_event'] = $all_student_in_an_event;
-     $this->data['duration'] = $duration;
-     $this->data['one_day_user'] = $one_day_user;
+         $this->data['all_event_in_an_org'] = $all_event_in_an_org;
+         $this->data['no_of_student_in_an_event'] = $no_of_student_in_an_event;
+         $this->data['all_student_in_an_event'] = $all_student_in_an_event;
+         $this->data['duration'] = $duration;
+         $this->data['one_day_user'] = $one_day_user;
 
-     $this->data['event_name'] = $all_event_in_an_org[0]['event_name'];
-     $this->data['org_name'] = $all_event_in_an_org[0]['org_name'];
-     $this->data['house_name_number'] = $all_event_in_an_org[0]['house_name_number'];
-     $this->data['street_name'] = $all_event_in_an_org[0]['street_name'];
-     $exchange_currency = $all_event_in_an_org[0]['currency'];
-     $this->data['postal'] = $all_event_in_an_org[0]['postal'];
+         $this->data['event_name'] = $all_event_in_an_org[0]['event_name'];
+         $this->data['org_name'] = $all_event_in_an_org[0]['org_name'];
+         $this->data['house_name_number'] = $all_event_in_an_org[0]['house_name_number'];
+         $this->data['street_name'] = $all_event_in_an_org[0]['street_name'];
+         $exchange_currency = $all_event_in_an_org[0]['currency'];
+         $this->data['postal'] = $all_event_in_an_org[0]['postal'];
     // exit;
-    $billing_flag = $all_event_in_an_org[0]['event_billing'];
+        $billing_flag = $all_event_in_an_org[0]['event_billing'];
 
-    $this->data['usd_exchange_rate'] = $usd_exchange_rate;
-    $this->data['euro_exchange_rate'] = $euro_exchange_rate;
+        $this->data['usd_exchange_rate'] = $usd_exchange_rate;
+        $this->data['euro_exchange_rate'] = $euro_exchange_rate;
 
         }
         
     }
     
  }
- return true;
+ // return true;
+
+    $this->get_include();
+    $this->load->view($this->viewDir . "invoice/invoice", $this->data);
 } 
     
-    function view_invoice($org_id = ''){
+function generate_pdf($org_id = ''){
         
-        $org_id = base64_decode($org_id);
+ $org_id = base64_decode($org_id);
         
         $sql = "SELECT eve.*, inv.*, org.org_name, org.house_name_number, org.street_name, org.currency, org.postal 
         FROM tbl_invoice as inv 
         LEFT JOIN tbl_event as eve ON eve.ev_seq_no = inv.event_id 
         LEFT JOIN tbl_org as org ON org.org_seq_no = inv.org_id WHERE inv.org_id = '" . $org_id . "' ";
         $query = $this->db->query($sql);
-        $all_events_billed = $query->result_array();
+        $all_events_invoiced = $query->result_array();
 
-        $event_seq_no = $all_events_billed[0]['ev_seq_no'];
+        $event_seq_no = $all_events_invoiced[0]['ev_seq_no'];
 
-    $start_date = $all_events_billed[0]['start_date'];
-    $end_date = $all_events_billed[0]['end_date'];
+    $start_date = $all_events_invoiced[0]['start_date'];
+    $end_date = $all_events_invoiced[0]['end_date'];
     $date_1 = strtotime($start_date);
     $next_monday_1 = date('Y-m-d', strtotime('next monday'));
     $next_monday = strtotime($next_monday_1);
@@ -212,7 +239,7 @@ class Invoice extends MY_AdminController
     $res_currency = $query_currency->result_array();
 
     $all_student = array();
-    foreach($all_events_billed as $key => $value){
+    foreach($all_events_invoiced as $key => $value){
 
          $sql_student = "SELECT usr.fname, usr.lname, usr.type, tevs.stu_id, eve.ev_seq_no, DATEDIFF('$end_date', '$start_date') as duration "
                 ."FROM tbl_user as usr "
@@ -229,18 +256,76 @@ class Invoice extends MY_AdminController
 
     }
 
+   $usd_exchange_rate = $res_currency[0]['us_dollar'];
+   $euro_exchange_rate = $res_currency[0]['euro_eu'];
+    $invoice_number = $all_events_invoiced[0]['invoice_number'];
+    $this->data['invoice_number'] = $invoice_number;
+    $this->data['org_name'] = $all_events_invoiced[0]['org_name'];
+    $this->data['house_name_number'] = $all_events_invoiced[0]['house_name_number'];
+    $this->data['street_name'] = $all_events_invoiced[0]['street_name'];
+    $this->data['postal'] = !empty($all_events_invoiced[0]['postal']) ? $all_events_invoiced[0]['postal'] : 'N/A' ;
+    $this->data['currency'] = $all_events_invoiced[0]['currency'];
+    $this->data['usd_exchange_rate'] = $res_currency[0]['us_dollar'];
+    $this->data['euro_exchange_rate'] = $res_currency[0]['euro_eu'];
 
-$output = array();
+//   exit;  
+    
+        $this->data['all_events_invoiced'] = $all_events_invoiced;
+        $this->get_include();
+        $html = $this->load->view($this->viewDir . "invoice/invoice", $this->data, true);
 
-$arrayAB = array_merge($all_events_billed, $no_of_students);
-foreach ( $arrayAB as $value ) {
-  $id = $value['no_of_students'];
-  if ( !isset($output[$id]) ) {
-    $output[$id] = array();
-  }
-  $output[$id] = array_merge($output[$id], $value);
-}
+        //this the the PDF filename that user will get to download
+        $pdfFilePath =  $this->data['org_name'].'-'.date('d m Y').".pdf";
 
+        //load mPDF library
+        $this->load->library('m_pdf');
+
+       //generate the PDF from the given html
+        $this->m_pdf->pdf->WriteHTML($html);
+
+        //download it.
+        $this->m_pdf->pdf->Output($pdfFilePath, "D");
+    }
+    function view_invoice($org_id = ''){
+                
+        $org_id = base64_decode($org_id);
+        
+        $sql = "SELECT eve.*, inv.*, org.org_name, org.house_name_number, org.street_name, org.currency, org.postal 
+        FROM tbl_invoice as inv 
+        LEFT JOIN tbl_event as eve ON eve.ev_seq_no = inv.event_id 
+        LEFT JOIN tbl_org as org ON org.org_seq_no = inv.org_id WHERE inv.org_id = '" . $org_id . "' ";
+        $query = $this->db->query($sql);
+        $all_events_invoiced = $query->result_array();
+
+        $event_seq_no = $all_events_invoiced[0]['ev_seq_no'];
+
+    $start_date = $all_events_invoiced[0]['start_date'];
+    $end_date = $all_events_invoiced[0]['end_date'];
+    $date_1 = strtotime($start_date);
+    $next_monday_1 = date('Y-m-d', strtotime('next monday'));
+    $next_monday = strtotime($next_monday_1);
+    
+    $currency_sql = "SELECT * FROM `tbl_exchange_rate` WHERE `created_date` BETWEEN '" . $date_1 ."' AND  '" . $next_monday. "' ";
+    $query_currency = $this->db->query($currency_sql);
+    $res_currency = $query_currency->result_array();
+
+    $all_student = array();
+    foreach($all_events_invoiced as $key => $value){
+
+         $sql_student = "SELECT usr.fname, usr.lname, usr.type, tevs.stu_id, eve.ev_seq_no, DATEDIFF('$end_date', '$start_date') as duration "
+                ."FROM tbl_user as usr "
+                ."LEFT JOIN tbl_event_stu_map as tevs ON usr.id = tevs.stu_id "
+                ."LEFT JOIN tbl_event as eve ON eve.ev_seq_no = tevs.ev_id "
+                ."WHERE eve.ev_seq_no = '" . $event_seq_no . "' AND eve.event_billing = '1'";
+        $query_student = $this->db->query($sql_student);
+        $all_student_in_an_event = $query_student->result_array();
+
+        
+
+        $all_student = count($all_student_in_an_event);
+        $no_of_students[] = $all_student;
+
+    }
 
    $usd_exchange_rate = $res_currency[0]['us_dollar'];
    $euro_exchange_rate = $res_currency[0]['euro_eu'];
@@ -260,6 +345,19 @@ foreach ( $arrayAB as $value ) {
         $this->get_include();
         $this->load->view($this->viewDir . "invoice/invoice", $this->data);
     }
-        
+
+function currencyConverter($currency_from,$currency_to,$currency_input){
+    $yql_base_url = "http://query.yahooapis.com/v1/public/yql";
+    $yql_query = 'select * from yahoo.finance.xchange where pair in ("'.$currency_from.$currency_to.'")';
+    $yql_query_url = $yql_base_url . "?q=" . urlencode($yql_query);
+    $yql_query_url .= "&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys";
+    $yql_session = curl_init($yql_query_url);
+    curl_setopt($yql_session, CURLOPT_RETURNTRANSFER,true);
+    $yqlexec = curl_exec($yql_session);
+    $yql_json =  json_decode($yqlexec,true);
+    $currency_output = (float) $currency_input*$yql_json['query']['results']['rate']['Rate'];
+
+    return $currency_output;
+}     
     
 }

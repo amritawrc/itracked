@@ -76,7 +76,7 @@
 		<td width="400">
 			<table width="100%" style=" margin-top: 20px; margin-bottom: 20px; padding-left:10px; line-height: 25px; font-size: 14px">
 				<tr>
-					<td><span style = "width: 100%; padding:10px 0; font-size:25px; text-align: center; display:inline-block; font-weight:800">
+					<td><span style = "width: 100%; padding:10px 0; font-size:25px; text-align: left; display:inline-block; font-weight:800">
                             <font style=" font-size:20px; font-weight:100">Organisation:</font> <?php echo $org_name; ?>
                         </span></td>
 				</tr>
@@ -114,23 +114,23 @@
 					<td><span style="width: 150px; display: inline-block;margin-right:6px; text-align: right">Organisation ref:</span> <strong>ponteski010284753</strong></td>
 				</tr>
 				<tr>
-					<td style=" text-align: center">Week Start Day: <strong>MONDAY <?php echo  ',' . date('d M Y', strtotime('next monday'));?></strong>
+					<td><span style="width: 150px; display: inline-block;margin-right:6px; text-align: right">Week Start Day:</span> <strong>MONDAY <?php echo  ',' . date('d M Y', strtotime('next monday'));?></strong>
 					</td>
 				</tr>
 				<tr>
 				    <?php if($currency == 'USD'){?>
 					<td><span style="width: 150px; display: inline-block; margin-right:6px; text-align: right">EXCHANGE RATE:</span>
-					<span style="width: 50px; text-align: center; display: inline-block">&#163; 1=</span>
+					<span style=" text-align: center; display: inline-block">&#163; 1=</span>
 					<span style="width: auto; padding: 0 5px; display: inline-block; font-weight: 800">&#36;<?php echo $usd_exchange_rate; ?></span>
 					</td>
 					<?php } else if($currency == 'EUR'){?>
 					<td><span style="width: 150px; display: inline-block; margin-right:6px; text-align: right">EXCHANGE RATE:</span>
-					<span style="width: 50px; text-align: center; display: inline-block">&#163; 1=</span>
+					<span style=" text-align: center; display: inline-block">&#163; 1=</span>
 					<span style="width: auto; padding: 0 5px; display: inline-block; font-weight: 800">&#8364;<?php echo $euro_exchange_rate; ?></span>
 					</td>
 					<?php } else if($currency == 'GBP') {?>
 					<td><span style="width: 150px; display: inline-block; margin-right:6px; text-align: right">EXCHANGE RATE:</span>
-					<span style="width: 50px; text-align: center; display: inline-block">&#163; 1=</span>
+					<span style=" text-align: center; display: inline-block">&#163; 1=</span>
 					<span style="width: auto; padding: 0 5px; display: inline-block; font-weight: 800">&#163;1</span>
 					</td>
 					<?php } ?>
@@ -150,9 +150,6 @@
 	</tr>
 	<?php 
 
-	$sub_total = $duration*$no_of_student_in_an_event*$one_day_user;
-    $tax = 0.2*$sub_total;
-    $grand_total = $sub_total+$tax;
 	?>
 	<tr>
 		<td colspan="2">
@@ -161,27 +158,51 @@
         <thead>
           <tr>
             <th class="service">Event</th>
-            <th class="service">No. of Students</th>
-            <th class="desc">Tariff - per day/week (in &#163;)</th>
+            <th class="service" style=" text-align:center">No. of Students</th>
+            <th class="desc" style=" text-align:center">Tariff - per day/week (in &#163;)</th>
             <th>Duration</th>
-            <th>Total</th>
+            <th width="130px">Total</th>
 
           </tr>
         </thead>
         <tbody>
-            <?php foreach($all_events_invoiced as $key => $value){ ?>
+            <?php 
+            $sub_total_main = 0;
+            foreach($all_events_invoiced as $key => $value){ 
+            $duration = $value['duration'];
+            $tariff = $value['tariff'];
+            ?>
           <tr>
             <td class="service">
-            <span style="width: 80px"><?php echo $value['event_id']; ?></span>
+            <span style="width: 80px"><?php echo $value['event_name']; ?></span>
             </td>
-            <td class="service">
-            <span style="width: 80px"><?php echo $value['no_of_students']; ?></span>
+            <td class="service" style=" text-align:center">
+                <?php
+                 $serial = 1;
+                if($serial==1){
+                    $count_std=0;
+                foreach($all_student_in_an_event as $key_stu =>$value_stu){
+                    if($value['event_id'] == $value_stu['ev_seq_no']){
+                        // echo 'devosmita'; die();
+                ?>
+                    <?php $count_std=count($all_student_in_an_event);  ?>
+               <?php
+                    }  
+             $serial++;
+                }?>
+               <span style="width: 80px"><?php echo $count_std; ?></span>
+           <?php
+         $sub_total = $count_std*$duration*$tariff;
+           
+            }?>
             </td>
-            <td class="desc"><span>&#163; <?php echo $value['tariff']; ?></span></td>
+            <td class="desc" style=" text-align:center"><span>&#163; <?php echo $value['tariff']; ?></span></td>
             <td class="unit"><span><?php echo $value['duration']; ?> Days</span></td>
             <td class="qty">&#163; <?php echo $sub_total; ?></td>
           </tr>
-          <?php } ?>
+          <?php
+           $sub_total_main+= $sub_total;
+           } ?>
         </tbody>
       </table>
       		</div>
@@ -198,27 +219,48 @@
 		<td width="430">
 			<table width="100%" cellpadding="0" cellspacing="0" style=" background: #777; color:#fff; padding: 10px 5px; font-size: 14px; line-height: 40px">
 				<tr>
-					<td width="50%" style="border-bottom: 1px solid #F5F5F5">PRE VAT</td>
-					<td width="50%" style="text-align: center; border-bottom: 1px solid #F5F5F5">£<?php echo $sub_total; ?></td>
+					<td width="65" style="border-bottom: 1px solid #F5F5F5">PRE VAT</td>
+					<td width="35" style="text-align: left; border-bottom: 1px solid #F5F5F5">£<?php echo $sub_total_main; ?></td>
 				</tr>
 				
 				<tr>
-					<td width="50%" style="border-bottom: 1px solid #F5F5F5">VAT @ 20%</td>
-					<td width="50%" style="text-align: center; border-bottom: 1px solid #F5F5F5">£<?php echo $tax; ?></td>
+				    <?php $tax =$sub_total_main*0.2; ?>
+					<td width="65 style="border-bottom: 1px solid #F5F5F5">VAT @ 20%</td>
+					<td width="35%" style="text-align: left; border-bottom: 1px solid #F5F5F5">£<?php echo $tax; ?></td>
 				</tr>
 				
 				<tr>
-					<td width="50%" style="border-bottom: 1px solid #F5F5F5">TOTAL</td>
-					<td width="50%" style="text-align: center; border-bottom: 1px solid #F5F5F5">£<?php echo $grand_total; ?></td>
+				    <?php $grand_total = $sub_total_main+$tax;?>
+					<td width="65%" style="border-bottom: 1px solid #F5F5F5">TOTAL</td>
+					<td width="35%" style="text-align: left; border-bottom: 1px solid #F5F5F5">£<?php echo $grand_total; ?></td>
 				</tr>
 				
 				<tr>
-					<td width="50%" style="border-bottom: 1px solid #F5F5F5">CURRENCY RATE</td>
-					<td width="50%" style="text-align: center; border-bottom: 1px solid #F5F5F5">1.50</td>
+					<td width="65%" style="border-bottom: 1px solid #F5F5F5">CURRENCY RATE</td>
+					<?php if($currency == 'USD'){?>
+					<td width="35%" style="text-align: left; border-bottom: 1px solid #F5F5F5">&#36;<?php echo $usd_exchange_rate; ?></td>
+					<?php } else if($currency == 'EUR'){?>
+					 <td width="35%" style="text-align: left; border-bottom: 1px solid #F5F5F5">&#8364;<?php echo $euro_exchange_rate; ?></td>
+					<?php }else if ($currency == 'GBP'){?>
+					 <td width="35%" style="text-align: left; border-bottom: 1px solid #F5F5F5">&#163;1</td>
+					<?php }
+				
+					?>
 				</tr>
 				<tr>
-					<td width="50%">CURRENCY RATE<span style="width: 55px; float: right">£ € $</span></td>
-					<td width="50%" style="text-align: center;">6876</td>
+				  
+				    <?php if($currency == 'USD'){?>
+				    <?php $amount_after_excahnge = $grand_total*$usd_exchange_rate;?>
+					<td width="65%">Price after exchange<span style="width: 55px; float: right; text-align: right;">&#36;</span></td>
+					<?php } else if($currency == 'EUR'){?>
+					<?php $amount_after_excahnge = $grand_total*$euro_exchange_rate;?>
+					 <td width="65%">Price after exchange<span style="width: 55px; float: right; text-align: right;">&#8364;</span></td>
+					<?php }else if ($currency == 'GBP'){?>
+					<?php $amount_after_excahnge = $grand_total*1;?>
+					 <td width="65%">Price after exchange<span style="width: 55px; float: right; text-align: right;">&#163;</span></td>
+					<?php } ?>
+					
+					<td width="35%" style="text-align: left; "><?php echo $amount_after_excahnge;?></td>
 				</tr>
 				
 			</table>

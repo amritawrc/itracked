@@ -73,7 +73,8 @@
                                         </thead>
                                         <tbody>
                                            <?php foreach ($det as $key => $value) {
-                                                //print_r($value);
+                                            // echo  $value['event']['event_billing']; 
+                                                // t($value['event']);exit;
 										?>
                                             <tr class="odd gradeX">
                                             	<td style="width: 20%"><?php echo $value['org_name'];?></td>
@@ -84,9 +85,12 @@
                                                 <td class="center"> <?php echo $value['reg_start_date'];?> </td>
                                                 <td class="center"> <?php echo $value['reg_end_date'];?> </td>
                                                 
-                                                <td width="180px">
-                                                   <a href="<?php echo base_url() . 'invoice/view_invoice/';?><?php echo base64_encode($value['org_seq_no']);?>"  class="btn btn-xs green dropdown-toggle" > Invoices</a>
-   
+                                                <td width="280px">
+                                                   <a href="<?php echo base_url() . 'invoice/view_invoice/';?><?php echo base64_encode($value['org_seq_no']);?>"  class="btn btn-xs green dropdown-toggle" target="_blank"> View</a>
+                                                   <a href="<?php echo base_url() . 'invoice/generate_pdf/';?><?php echo base64_encode($value['org_seq_no']);?>"  class="btn btn-xs green dropdown-toggle" > Download</a>
+                                                   <?php if($value['event']['event_billing'] == 0){?>
+                                                   <a href="<?php echo base_url() . 'invoice/auto_payment/';?><?php echo base64_encode($value['org_seq_no']);?>"  class="btn btn-xs green dropdown-toggle" > Add Bill</a>
+                                                <?php } ?>
                                                 </td>
                                             </tr>
                                             

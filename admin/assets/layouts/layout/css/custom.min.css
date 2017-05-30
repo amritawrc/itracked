@@ -1,0 +1,26 @@
+.client_form{ width:100%; margin:0; }
+
+.form_form{ width:100%; margin:0; }
+
+.form_form .portlet.box.green > .portlet-title, .portlet.green, .portlet > .portlet-body.green {
+    background-color: #717372;
+	margin-top:15px;
+}
+.form_form .portlet.box.green {
+	border: 1px solid #717372;
+	border-top: 0
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
